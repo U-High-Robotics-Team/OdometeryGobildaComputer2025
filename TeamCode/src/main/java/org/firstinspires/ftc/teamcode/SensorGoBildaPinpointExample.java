@@ -89,8 +89,8 @@ public class SensorGoBildaPinpointExample extends OpMode {
         Pose2D pos = odo.getPosition();
         double heading =  pos.getHeading(AngleUnit.RADIANS);
 
-        double cosAngle = Math.cos(heading);
-        double sinAngle = Math.sin(heading);
+        double cosAngle = Math.cos((Math.PI / 2)-heading);
+        double sinAngle = Math.sin((Math.PI / 2)-heading);
 
         double globalForward = forward * cosAngle + strafe * sinAngle;
         double globalStrafe = -forward * sinAngle + strafe * cosAngle;
