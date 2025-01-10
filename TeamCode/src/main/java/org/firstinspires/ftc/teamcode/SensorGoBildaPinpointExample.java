@@ -129,9 +129,16 @@ public class SensorGoBildaPinpointExample extends OpMode {
 
 
     public void moveRobot(){
-        double forward = -gamepad1.left_stick_y; // (inverted Y-axis)
-        double strafe = gamepad1.left_stick_x;
-        double rotate = gamepad1.right_stick_x;
+
+        if(slide.getCurrentPosition()>SLIDE_POSITION_THRESHOLD){
+            wheelSpeed = WHEEL_SPEED_LIMITED;
+        }else{
+            wheelSpeed = WHEEL_SPEED_MAX;
+        }
+
+        double forward = -gamepad1.left_stick_y * wheelSpeed; // (inverted Y-axis)
+        double strafe = gamepad1.left_stick_x * wheelSpeed;
+        double rotate = gamepad1.right_stick_x * wheelSpeed;
 
         if (gamepad1.a){
             odo.resetPosAndIMU(); //resets the position to 0 and recalibrates the IMU
