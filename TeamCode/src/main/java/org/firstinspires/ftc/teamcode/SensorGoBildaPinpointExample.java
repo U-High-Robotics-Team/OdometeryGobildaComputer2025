@@ -224,6 +224,9 @@ public class SensorGoBildaPinpointExample extends OpMode {
 
         odo.resetPosAndIMU();
 
+        Pose2D startingPosition= new Pose2D(DistanceUnit.MM,-923.925, 1601.47, AngleUnit.RADIANS, 0);
+        odo.setPosition(startingPosition);
+
         telemetry.addData("Status", "Initialized");
         telemetry.addData("X offset", odo.getXOffset());
         telemetry.addData("Y offset", odo.getYOffset());
@@ -433,6 +436,11 @@ public class SensorGoBildaPinpointExample extends OpMode {
         moveSlide();
         moveWrist();
         moveClaw();
+
+        telemetry.addData("Robot X: ", odo.getPosX());
+        telemetry.addData("Robot X: ", odo.getPosY());
+        Pose2D pos = odo.getPosition();
+        telemetry.addData("Robot X: ", pos.getHeading(AngleUnit.DEGREES));
         telemetry.update();
 
         odo.update();
