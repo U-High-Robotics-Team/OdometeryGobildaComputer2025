@@ -22,7 +22,6 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -33,8 +32,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
-
-import java.util.Locale;
 
 /*
 This opmode shows how to use the goBILDA® Pinpoint Odometry Computer.
@@ -65,7 +62,7 @@ For support, contact tech@gobilda.com
 @TeleOp(name="Global TeleOp")
 //@Disabled
 
-public class SensorGoBildaPinpointExample extends OpMode {
+public class GlobalTeleOp extends OpMode {
 
     // Timer for Servos
     private final ElapsedTime timer = new ElapsedTime();
@@ -153,6 +150,8 @@ public class SensorGoBildaPinpointExample extends OpMode {
         double cosAngle = Math.cos((Math.PI / 2)-heading);
         double sinAngle = Math.sin((Math.PI / 2)-heading);
 
+        // for auto just make globalForward sinAngle negative and globalStrafe sinAngle postive
+        // alternatively you can just make theta negative
         double globalForward = forward * cosAngle + strafe * sinAngle;
         double globalStrafe = -forward * sinAngle + strafe * cosAngle;
 
