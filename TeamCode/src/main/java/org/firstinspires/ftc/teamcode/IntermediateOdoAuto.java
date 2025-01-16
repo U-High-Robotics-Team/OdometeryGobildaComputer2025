@@ -31,7 +31,7 @@ public class IntermediateOdoAuto extends LinearOpMode {
         BLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         FLeft.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        // Reset odometry
+        // reset odometry
         odo.resetPosAndIMU();
 
         // starting position
