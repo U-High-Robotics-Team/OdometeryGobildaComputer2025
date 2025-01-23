@@ -18,12 +18,14 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 
 public class MultiTaskAuto extends OpMode {
 
-    GoBildaPinpointDriver odo; // Declare OpMode member for the Odometry Computer
-
     RobotTarget[] targets = {
-            new RobotTarget(-1430, -1430, Math.PI / 4, 5, RobotState.BASKET_1)
+            new RobotTarget(-1423, -1423, Math.PI / 4, 4, RobotState.BASKET_1),
+            new RobotTarget(-1423, -1423, Math.PI / 2, 2.5, RobotState.BASKET_3),
+            new RobotTarget(-1320, -1360, Math.PI / 2, 1, RobotState.SUB_1)
             // new RobotTarget(0, 0, 0, 3, RobotState.HOME) // Example of adding multiple targets
     };
+
+    boolean isTeleOp = false;
 
     // Timer for Servos
     private final ElapsedTime presetTimer = new ElapsedTime();
@@ -74,7 +76,10 @@ public class MultiTaskAuto extends OpMode {
     double slideTarget = SLIDE_MIN;
     double wheelSpeed = WHEEL_SPEED_MAX;
 
-    // Initializing motors
+
+    // Initializing hardware objects
+
+    GoBildaPinpointDriver odo; // Declare OpMode member for the Odometry Computer
     private DcMotor BLeft;
     private DcMotor BRight;
     private DcMotor FLeft;
@@ -83,6 +88,9 @@ public class MultiTaskAuto extends OpMode {
     private DcMotor shoulder;
     private Servo wrist;
     private Servo claw;
+    double addX = 0;
+    double addY = 0;
+    double addTheta = 0;
 
     double kP = 0.0024; // bigger the error the faster we will fix it
     double kI = 0.00013; // provides extra boost when you get close to the target
@@ -94,16 +102,15 @@ public class MultiTaskAuto extends OpMode {
 
     @Override
     public void loop() {
+
+
         if (currentTargetIndex < targets.length) {
             RobotTarget target = targets[currentTargetIndex];
-            double targetX = target.x;
-            double targetY = target.y;
-            double targetHeading = target.heading;
             double targetDuration = target.time;
             requestedState = target.state;
 
             if (timer.seconds() < targetDuration) {
-                moveRobotTo(targetX, targetY, targetHeading);
+                moveRobotTo(target.x, target.y, target.heading);
                 stateMachine();
                 moveClaw();
                 moveSlide();
@@ -116,7 +123,26 @@ public class MultiTaskAuto extends OpMode {
         } else {
             stopMotors(); // Stop the robot once all targets are processed
         }
+
+        telemetry.addData("Current X", odo.get(DistanceUnit.MM));
+        telemetry.addData("Current Y", odo.getY(DistanceUnit.MM));
+
+
+        // updating odo positions
+        odo.update();
+
+        // getting current positions
+        currentPosition = odo.getPosition();
+        currentX = currentPosition.getX(DistanceUnit.MM);
+        currentY = currentPosition.getY(DistanceUnit.MM);
+        currentHeading = currentPosition.getHeading(AngleUnit.RADIANS);
+
+        telemetry.addData("Current X", currentX);
+        telemetry.addData("Current Y", currentY);
+        telemetry.addData("Current Heading", currentY);
+
     }
+
 
     @Override
     public void init() {
@@ -148,7 +174,7 @@ public class MultiTaskAuto extends OpMode {
         odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
         // Set your desired starting position
-        Pose2D startingPosition = new Pose2D(DistanceUnit.MM, -923.925, -1601.47, AngleUnit.RADIANS, 0);
+        Pose2D startingPosition = new Pose2D(DistanceUnit.MM, -871.5375, -1558.925, AngleUnit.RADIANS, 0);
         odo.setPosition(startingPosition);
 
         odo.update();
@@ -174,6 +200,12 @@ public class MultiTaskAuto extends OpMode {
         double currentY = currentPosition.getY(DistanceUnit.MM);
         double currentHeading = currentPosition.getHeading(AngleUnit.RADIANS);
 
+        if(slide.getCurrentPosition() > 500){
+            wheelSpeed = WHEEL_SPEED_LIMITED;
+        }else{
+            wheelSpeed = WHEEL_SPEED_MAX;
+        }
+
         // Finding errors using current and targets
         double deltaX = targetX - currentX;
         double deltaY = targetY - currentY;
@@ -186,7 +218,7 @@ public class MultiTaskAuto extends OpMode {
         if (Math.abs(deltaX) < 1) {
             deltaX = 0;
         }
-        if (Math.abs(deltaHeading) < 0.01) {
+        if (Math.abs(deltaHeading) < 0.001) {
             deltaHeading = 0;
         }
 
@@ -207,10 +239,10 @@ public class MultiTaskAuto extends OpMode {
         double localY = -xPower * sinAngle + yPower * cosAngle;
 
         // Calculating individual wheel speeds
-        double frontLeft = localX + localY + turnPower;
-        double frontRight = localX - localY - turnPower;
-        double backLeft = localX - localY + turnPower;
-        double backRight = localX + localY - turnPower;
+        double frontLeft = (localX + localY + turnPower) * wheelSpeed;
+        double frontRight = (localX - localY - turnPower) * wheelSpeed;
+        double backLeft = (localX - localY + turnPower) * wheelSpeed;
+        double backRight = (localX + localY - turnPower) * wheelSpeed;
 
         FLeft.setPower(frontLeft);
         FRight.setPower(frontRight);
@@ -383,6 +415,14 @@ public class MultiTaskAuto extends OpMode {
 
                 break;
         }
+        Pose2D currentPosition = odo.getPosition();
+        double currentX = currentPosition.getX(DistanceUnit.MM);
+        double currentY = currentPosition.getY(DistanceUnit.MM);
+        double currentHeading = currentPosition.getHeading(AngleUnit.RADIANS);
+
         telemetry.addData("State Machine", "Current state: %s", currentState);
+        telemetry.addData("CurrentX: ", currentX);
+        telemetry.addData("CurrentY: ", currentY);
+        telemetry.addData("Current Heading: ", currentHeading);
     }
 }
