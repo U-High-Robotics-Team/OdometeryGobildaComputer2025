@@ -22,6 +22,9 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.robot.RobotState;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -29,9 +32,12 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.DoubleBasketPark.RobotStates;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+
+import java.util.Locale;
 
 /*
 This opmode shows how to use the goBILDA® Pinpoint Odometry Computer.
@@ -67,22 +73,10 @@ public class GlobalTeleOp extends OpMode {
     // Timer for Servos
     private final ElapsedTime timer = new ElapsedTime();
 
-    // Preset action states
-    enum RobotState {
-        HOME,
-        SUB_1,
-        SUB_2,
-        SUB_3,
-        BASKET_1,
-        BASKET_2,
-        BASKET_3,
-        BASKET_4,
-        UNKNOWN             // when moved manually into another pose
-    }
 
     // Performance constants
-    final int SLIDE_Y_MAX = 2400;
-    final int SLIDE_X_MAX = 1000; // Maximum position (top)
+    final int SLIDE_Y_MAX = 3000;
+    final int SLIDE_X_MAX = 1800; // Maximum position (top)
     final int SLIDE_MIN = 0; // Minimum position (bottom)
     final double SLIDE_POWER = 1;
     final int SHOULDER_MAX = 1400;
@@ -91,7 +85,7 @@ public class GlobalTeleOp extends OpMode {
     final double WRIST_UP = 0;
     final double WRIST_DOWN = 0.65;
     final double WRIST_CLIP = 0.3; // unused currently
-    final double CLAW_OPEN = 0.6;
+    final double CLAW_OPEN = 0.65;
     final double CLAW_CLOSED = 0;
     final double WHEEL_SPEED_MAX = 1;
     final double WHEEL_SPEED_LIMITED = 0.17;
@@ -99,7 +93,7 @@ public class GlobalTeleOp extends OpMode {
     // Threshold where speed is reduced when slide is extended
     final double SLIDE_POSITION_THRESHOLD = 700;
     // Threshold where slide estension is limited with should down to stay within size limits
-    final double SHOULDER_POSITION_THRESHOLD = 500;
+    final double SHOULDER_POSITION_THRESHOLD = 800;
 
     // set initial position ...
     double shoulderTarget = SHOULDER_MIN;
@@ -108,8 +102,8 @@ public class GlobalTeleOp extends OpMode {
     double slideTarget = SLIDE_MIN;
     double wheelSpeed = WHEEL_SPEED_MAX;
     // ... then set current state to match above position
-    RobotState currentState = RobotState.HOME;
-    RobotState requestedState = RobotState.HOME;
+    RobotStates currentState = RobotStates.HOME;
+    RobotStates requestedState = RobotStates.HOME;
 
 
     GoBildaPinpointDriver odo; // Declare OpMode member for the Odometry Computer
@@ -137,21 +131,16 @@ public class GlobalTeleOp extends OpMode {
         double strafe = gamepad1.left_stick_x * wheelSpeed;
         double rotate = gamepad1.right_stick_x * wheelSpeed;
 
-        if (gamepad1.a){
+        if (gamepad1.right_trigger > 0.9){
             odo.resetPosAndIMU(); //resets the position to 0 and recalibrates the IMU
         }
 
-        if (gamepad1.b){
-            odo.recalibrateIMU(); //recalibrates the IMU without resetting position
-        }
         Pose2D pos = odo.getPosition();
         double heading =  pos.getHeading(AngleUnit.RADIANS);
 
         double cosAngle = Math.cos((Math.PI / 2)-heading);
         double sinAngle = Math.sin((Math.PI / 2)-heading);
 
-        // for auto just make globalForward sinAngle negative and globalStrafe sinAngle postive
-        // alternatively you can just make theta negative
         double globalForward = forward * cosAngle + strafe * sinAngle;
         double globalStrafe = -forward * sinAngle + strafe * cosAngle;
 
@@ -176,7 +165,7 @@ public class GlobalTeleOp extends OpMode {
         telemetry.addData("Strafe Speed : ", globalStrafe);
 
 
-     // Reference for positivity.
+        // Reference for positivity.
 //        this.wFL = ((xVelo + yVelo) + (AXLE_CONSTANT * tVelo))/ WHEEL_RADIUS;// + + +
 //        this.wFR = ((xVelo - yVelo) - (AXLE_CONSTANT * tVelo))/ WHEEL_RADIUS;// + - -
 //        this.wBL = ((xVelo - yVelo) + (AXLE_CONSTANT * tVelo))/ WHEEL_RADIUS;// + - +
@@ -243,29 +232,29 @@ public class GlobalTeleOp extends OpMode {
     public void gamepadInput() {
         // Preset States
         if (gamepad2.right_bumper) {
-            requestedState = RobotState.HOME;
+            requestedState = RobotStates.HOME;
         }
         if (gamepad2.right_trigger > 0.5) {
-            requestedState = RobotState.SUB_1;
+            requestedState = RobotStates.SUB_1;
         }
         if (gamepad2.left_bumper) {
-            requestedState = RobotState.BASKET_1;
+            requestedState = RobotStates.BASKET_1;
         }
         if (gamepad2.left_trigger > 0.5) {
-            requestedState = RobotState.BASKET_2;
+            requestedState = RobotStates.BASKET_2;
         }
         if (gamepad2.a) {
             // Preset to grab block
-            if (currentState == RobotState.SUB_1) {
-                requestedState = RobotState.SUB_2;
+            if (currentState == RobotStates.SUB_1) {
+                requestedState = RobotStates.SUB_2;
             } else {
                 // clawTarget = WRIST_DOWN;
             }
         }
         if (gamepad2.x) {
             // Preset to return to home
-            if (currentState == RobotState.BASKET_2) {
-                requestedState = RobotState.BASKET_3; // Same as home but with systematic process (ordering movements)
+            if (currentState == RobotStates.BASKET_2) {
+                requestedState = RobotStates.BASKET_3; // Same as home but with systematic process (ordering movements)
             } else {
                 //clawTarget = CLAW_OPEN;
             }
@@ -282,16 +271,16 @@ public class GlobalTeleOp extends OpMode {
                     wristTarget = WRIST_UP;
                 }
                 // delayed actions
-                if (timer.seconds() > 0.4) {
+                if (timer.seconds() > 0.2) {
                     shoulderTarget = SHOULDER_MIN;
                     slideTarget = SLIDE_MIN;
                 }
                 // allowed transistions from HOME: SUBMERSIBLE, BASKET_1
-                if (requestedState == RobotState.SUB_1){
-                    currentState = RobotState.SUB_1;
+                if (requestedState == RobotStates.SUB_1){
+                    currentState = RobotStates.SUB_1;
                     timer.reset();  // start delay timer for wrist movement
-                } else if (requestedState == RobotState.BASKET_1){
-                    currentState = RobotState.BASKET_1;
+                } else if (requestedState == RobotStates.BASKET_1){
+                    currentState = RobotStates.BASKET_1;
                     timer.reset();  // start delay timer for wrist movement
                 }
                 break;
@@ -303,11 +292,11 @@ public class GlobalTeleOp extends OpMode {
                 slideTarget = SLIDE_X_MAX;
                 wristTarget = WRIST_CLIP;
                 // allowed transistions from SUB: HOME, SUB_2
-                if (requestedState == RobotState.HOME){
-                    currentState = RobotState.HOME;
+                if (requestedState == RobotStates.HOME){
+                    currentState = RobotStates.HOME;
                     timer.reset();  // start delay timer for wrist movement
-                } else if (requestedState == RobotState.SUB_2){
-                    currentState = RobotState.SUB_2;
+                } else if (requestedState == RobotStates.SUB_2){
+                    currentState = RobotStates.SUB_2;
                     timer.reset();  // start delay timer for wrist movement
                 }
                 break;
@@ -321,8 +310,8 @@ public class GlobalTeleOp extends OpMode {
                 if(timer.seconds() > 0.4){
                     clawTarget = CLAW_CLOSED;
                 }
-                if(timer.seconds() > 0.8){
-                    currentState = RobotState.SUB_3;
+                if(timer.seconds() > 0.7){
+                    currentState = RobotStates.SUB_3;
                     timer.reset();
                 }
                 // allowed transition
@@ -333,11 +322,11 @@ public class GlobalTeleOp extends OpMode {
                 // immediate actions
                 wristTarget = WRIST_UP;
                 // allowed transition
-                if (requestedState == RobotState.HOME){
-                    currentState = RobotState.HOME;
+                if (requestedState == RobotStates.HOME){
+                    currentState = RobotStates.HOME;
                     timer.reset();  // start delay timer for wrist movement
-                } else if (requestedState == RobotState.SUB_1){
-                    currentState = RobotState.SUB_1;
+                } else if (requestedState == RobotStates.SUB_1){
+                    currentState = RobotStates.SUB_1;
                     timer.reset();  // start delay timer for wrist movement
                 }
                 break;
@@ -348,8 +337,8 @@ public class GlobalTeleOp extends OpMode {
                 wristTarget = WRIST_DOWN;
                 // delayed actions
                 // allowed transistions
-                if (timer.seconds() > 1.5) {
-                    currentState = RobotState.BASKET_2;
+                if (timer.seconds() > 1.0) {
+                    currentState = RobotStates.BASKET_2;
                     timer.reset();
                 }
                 break;
@@ -362,8 +351,8 @@ public class GlobalTeleOp extends OpMode {
                     wristTarget = WRIST_UP;
                 }
 
-                if(requestedState == RobotState.BASKET_3){
-                    currentState = RobotState.BASKET_3;
+                if(requestedState == RobotStates.BASKET_3){
+                    currentState = RobotStates.BASKET_3;
                     timer.reset();
                 }
                 break;
@@ -372,8 +361,8 @@ public class GlobalTeleOp extends OpMode {
                 // immediate actions
                 clawTarget = CLAW_OPEN;
 
-                if(timer.seconds()> 1.0){
-                    currentState = RobotState.BASKET_4;
+                if(timer.seconds()> 0.3){
+                    currentState = RobotStates.BASKET_4;
                     timer.reset();
                 }
                 break;
@@ -381,24 +370,26 @@ public class GlobalTeleOp extends OpMode {
             case BASKET_4:
                 wristTarget = WRIST_DOWN;
 
-                if(timer.seconds()>1.0){
+                if(timer.seconds()>0.8){
                     slideTarget = SLIDE_MIN;
                     shoulderTarget = SHOULDER_MAX;
                 }
 
-                if(timer.seconds()>2.0){
-                    currentState = RobotState.HOME;
+                if(timer.seconds()>1.4){
+                    currentState = RobotStates.HOME;
                     timer.reset();
                 }
 
                 break;
 
             default:
-                currentState = RobotState.UNKNOWN;
+                currentState = RobotStates.UNKNOWN;
 
                 break;
         }
+
         telemetry.addData("State Machine", "Current state: %s", currentState);
+
     }
 
     public void moveWrist() {
@@ -445,4 +436,3 @@ public class GlobalTeleOp extends OpMode {
         odo.update();
     }
 }
-

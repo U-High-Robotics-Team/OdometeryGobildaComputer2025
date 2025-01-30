@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import java.lang.annotation.Target;
 import com.qualcomm.robotcore.robot.RobotState;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -13,43 +14,57 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 
-@Autonomous(name="MultiTaskAuto")
+@Autonomous(name="DoubleBasketPark")
 //@Disabled
 
-public class MultiTaskAuto extends OpMode {
+public class DoubleBasketPark extends OpMode {
 
     RobotTarget[] targets = {
-            new RobotTarget(-1423, -1423, Math.PI / 4, 4, RobotState.BASKET_1),
-            new RobotTarget(-1423, -1423, Math.PI / 2, 2.5, RobotState.BASKET_3),
-            new RobotTarget(-1320, -1360, Math.PI / 2, 1, RobotState.SUB_1)
+            new RobotTarget(-1405, -1405, Math.PI / 4, 4, RobotStates.BASKET_1),
+            new RobotTarget(-1405, -1405, Math.PI / 4, 1.5, RobotStates.BASKET_3),
+            new RobotTarget(-1190, -1250, Math.PI / 2, 2.3, RobotStates.SUB_1),
+            new RobotTarget(-1190, -1250, Math.PI / 2, 1.4, RobotStates.SUB_2),
+            new RobotTarget(-1405, -1405, Math.PI / 4, 1.2, RobotStates.HOME),
+            new RobotTarget(-1405, -1405, Math.PI / 4, 3.5, RobotStates.BASKET_1),
+            new RobotTarget(-1405, -1405, Math.PI / 4, 2.5, RobotStates.BASKET_3),
+            new RobotTarget(-1450, -1250, Math.PI / 2, 2.2, RobotStates.SUB_1),
+            new RobotTarget(-1450, -1250, Math.PI / 2, 1.4, RobotStates.SUB_2),
+            new RobotTarget(-1405, -1405, Math.PI / 4, 1.2, RobotStates.HOME),
+            new RobotTarget(-1405, -1405, Math.PI / 4, 3.7, RobotStates.BASKET_1),
+            new RobotTarget(-1405, -1405, Math.PI / 4, 2.4, RobotStates.BASKET_3),
+            new RobotTarget(1150, -1420, Math.PI / 4, 10, RobotStates.HOME)
             // new RobotTarget(0, 0, 0, 3, RobotState.HOME) // Example of adding multiple targets
     };
+
+    // RobotTarget[] targets = {
+    //         new RobotTarget(-1405, -1405, Math.PI / 4, 8, RobotStates.BASKET_1),
+    //         new RobotTarget(-1405, -1405, Math.PI / 4, 8, RobotStates.BASKET_3),
+    //         new RobotTarget(-1190, -1250, Math.PI / 2, 8, RobotStates.SUB_1),
+    //         new RobotTarget(-1190, -1250, Math.PI / 2, 8, RobotStates.SUB_2),
+    //         new RobotTarget(-1405, -1405, Math.PI / 4, 8, RobotStates.HOME),
+    //         new RobotTarget(-1405, -1405, Math.PI / 4, 8, RobotStates.BASKET_1),
+    //         new RobotTarget(-1405, -1405, Math.PI / 4, 8, RobotStates.BASKET_3),
+    //         new RobotTarget(-1430, -1250, Math.PI / 2, 8, RobotStates.SUB_1),
+    //         new RobotTarget(-1430, -1250, Math.PI / 2, 8, RobotStates.SUB_2),
+    //         new RobotTarget(-1405, -1405, Math.PI / 4, 8, RobotStates.HOME),
+    //         new RobotTarget(-1405, -1405, Math.PI / 4, 8, RobotStates.BASKET_1),
+    //         new RobotTarget(-1405, -1405, Math.PI / 4, 8, RobotStates.BASKET_3),
+    //         new RobotTarget(1150, -1420, Math.PI / 4, 10, RobotStates.HOME)
+    //         // new RobotTarget(0, 0, 0, 3, RobotState.HOME) // Example of adding multiple targets
+    // };
+
 
     boolean isTeleOp = false;
 
     // Timer for Servos
-    private final ElapsedTime presetTimer = new ElapsedTime();
+    private ElapsedTime presetTimer = new ElapsedTime();
 
     // Timer used for exiting early if needed
     ElapsedTime timer = new ElapsedTime();
 
-    // Preset action states
-    enum RobotState {
-        NONE,
-        HOME,
-        SUB_1,
-        SUB_2,
-        SUB_3,
-        BASKET_1,
-        BASKET_2,
-        BASKET_3,
-        BASKET_4,
-        UNKNOWN             // when moved manually into another pose
-    }
-
     // Performance constants
-    final int SLIDE_Y_MAX = 2400;
-    final int SLIDE_X_MAX = 1000; // Maximum position (top)
+    final int SLIDE_Y_MAX = 3000;
+    final int SLIDE_X_MAX = 1500; // Maximum position (top)
     final int SLIDE_MIN = 0; // Minimum position (bottom)
     final double SLIDE_POWER = 1;
     final int SHOULDER_MAX = 1400;
@@ -64,17 +79,29 @@ public class MultiTaskAuto extends OpMode {
     final double WHEEL_SPEED_LIMITED = 0.17;
 
     // Thresholds
-    final double SLIDE_POSITION_THRESHOLD = 700;
+    final double SLIDE_POSITION_THRESHOLD =  400;
     final double SHOULDER_POSITION_THRESHOLD = 500;
 
     // Initial Targets
-    RobotState currentState = RobotState.HOME;
-    RobotState requestedState = RobotState.HOME;
+    RobotStates currentState = RobotStates.HOME;
+    RobotStates requestedState = RobotStates.HOME;
     double shoulderTarget = SHOULDER_MIN;
     double wristTarget = WRIST_UP;
     double clawTarget = CLAW_CLOSED;
     double slideTarget = SLIDE_MIN;
     double wheelSpeed = WHEEL_SPEED_MAX;
+
+    enum RobotStates {
+        HOME,
+        SUB_1,
+        SUB_2,
+        SUB_3,
+        BASKET_1,
+        BASKET_2,
+        BASKET_3,
+        BASKET_4,
+        UNKNOWN             // when moved manually into another pose
+    }
 
 
     // Initializing hardware objects
@@ -92,21 +119,21 @@ public class MultiTaskAuto extends OpMode {
     double addY = 0;
     double addTheta = 0;
 
-    double kP = 0.0024; // bigger the error the faster we will fix it
+    double kP = 0.0022; // bigger the error the faster we will fix it
     double kI = 0.00013; // provides extra boost when you get close to the target
     double kD = 0.00015; // dampens overshoot
 
     private double integralSum = 0;
+    double lastError = 0;
+    double targetDuration = 0;
 
     private int currentTargetIndex = 0; // Keeps track of the current target
 
     @Override
     public void loop() {
-
-
         if (currentTargetIndex < targets.length) {
             RobotTarget target = targets[currentTargetIndex];
-            double targetDuration = target.time;
+            this.targetDuration = target.time;
             requestedState = target.state;
 
             if (timer.seconds() < targetDuration) {
@@ -124,23 +151,25 @@ public class MultiTaskAuto extends OpMode {
             stopMotors(); // Stop the robot once all targets are processed
         }
 
-        telemetry.addData("Current X", odo.get(DistanceUnit.MM));
-        telemetry.addData("Current Y", odo.getY(DistanceUnit.MM));
-
-
         // updating odo positions
         odo.update();
 
         // getting current positions
-        currentPosition = odo.getPosition();
-        currentX = currentPosition.getX(DistanceUnit.MM);
-        currentY = currentPosition.getY(DistanceUnit.MM);
-        currentHeading = currentPosition.getHeading(AngleUnit.RADIANS);
+        Pose2D currentPosition = odo.getPosition();
+        double currentX = currentPosition.getX(DistanceUnit.MM);
+        double currentY = currentPosition.getY(DistanceUnit.MM);
+        double currentHeading = currentPosition.getHeading(AngleUnit.RADIANS);
 
         telemetry.addData("Current X", currentX);
         telemetry.addData("Current Y", currentY);
-        telemetry.addData("Current Heading", currentY);
+        telemetry.addData("Current Heading", currentHeading);
 
+    }
+
+    @Override
+    public void start(){
+        timer = new ElapsedTime();
+        presetTimer = new ElapsedTime();
     }
 
 
@@ -173,6 +202,11 @@ public class MultiTaskAuto extends OpMode {
         odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
         odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
+        //odo.resetPosAndIMU();
+        //try {
+        //Thread.sleep(500);
+        //} catch(InterruptedException e){
+        //    }
         // Set your desired starting position
         Pose2D startingPosition = new Pose2D(DistanceUnit.MM, -871.5375, -1558.925, AngleUnit.RADIANS, 0);
         odo.setPosition(startingPosition);
@@ -185,10 +219,11 @@ public class MultiTaskAuto extends OpMode {
         telemetry.addData("Current X", startingPosition.getX(DistanceUnit.MM));
         telemetry.addData("Current Y", startingPosition.getY(DistanceUnit.MM));
         telemetry.addData("Device Version Number:", odo.getDeviceVersion());
+        telemetry.addData("Current Heding", startingPosition.getHeading(AngleUnit.RADIANS));
         telemetry.addData("Device Scalar", odo.getYawScalar());
         telemetry.update();
 
-        timer.reset();
+
     }
 
     public void moveRobotTo(double targetX, double targetY, double targetHeading) {
@@ -200,7 +235,7 @@ public class MultiTaskAuto extends OpMode {
         double currentY = currentPosition.getY(DistanceUnit.MM);
         double currentHeading = currentPosition.getHeading(AngleUnit.RADIANS);
 
-        if(slide.getCurrentPosition() > 500){
+        if(slide.getCurrentPosition() > SLIDE_X_MAX){
             wheelSpeed = WHEEL_SPEED_LIMITED;
         }else{
             wheelSpeed = WHEEL_SPEED_MAX;
@@ -212,10 +247,10 @@ public class MultiTaskAuto extends OpMode {
         double deltaHeading = targetHeading - currentHeading;
 
         // Accounting for minor errors
-        if (Math.abs(deltaY) < 1) {
+        if (Math.abs(deltaY) < 0.5) {
             deltaY = 0;
         }
-        if (Math.abs(deltaX) < 1) {
+        if (Math.abs(deltaX) < 0.5) {
             deltaX = 0;
         }
         if (Math.abs(deltaHeading) < 0.001) {
@@ -226,9 +261,22 @@ public class MultiTaskAuto extends OpMode {
         deltaY = -deltaY;
 
         // Using proportional controller for power
+        // double xPower = Math.max(Math.min(findPIDPower(deltaX), 1), -1);
+        // double yPower = Math.max(Math.min(findPIDPower(deltaY), 1), -1);
+
+
         double xPower = deltaX * kP;
         double yPower = deltaY * kP;
         double turnPower = -deltaHeading;
+
+        //double turnPower = -Math.max(Math.min(findPower(deltaHeading), 1), -1);
+
+
+        // double xPower = deltaX * kP;
+        // double yPower = deltaY * kP;
+        // double turnPower = -Math.toDegrees(deltaHeading) * 0.09;
+
+
 
         // Negative currentHeading due to rotating global power counterclockwise
         double cosAngle = Math.cos(-currentHeading);
@@ -289,6 +337,7 @@ public class MultiTaskAuto extends OpMode {
     // state machine
 
 
+
     public void stateMachine() {
         switch (currentState) {
             case HOME:
@@ -299,16 +348,16 @@ public class MultiTaskAuto extends OpMode {
                     wristTarget = WRIST_UP;
                 }
                 // delayed actions
-                if (presetTimer.seconds() > 0.4) {
+                if (presetTimer.seconds() > 0.2) {
                     shoulderTarget = SHOULDER_MIN;
                     slideTarget = SLIDE_MIN;
                 }
                 // allowed transistions from HOME: SUBMERSIBLE, BASKET_1
-                if (requestedState == RobotState.SUB_1){
-                    currentState = RobotState.SUB_1;
+                if (requestedState == RobotStates.SUB_1){
+                    currentState = RobotStates.SUB_1;
                     presetTimer.reset();  // start delay timer for wrist movement
-                } else if (requestedState == RobotState.BASKET_1){
-                    currentState = RobotState.BASKET_1;
+                } else if (requestedState == RobotStates.BASKET_1){
+                    currentState = RobotStates.BASKET_1;
                     presetTimer.reset();  // start delay timer for wrist movement
                 }
                 break;
@@ -320,11 +369,11 @@ public class MultiTaskAuto extends OpMode {
                 slideTarget = SLIDE_X_MAX;
                 wristTarget = WRIST_CLIP;
                 // allowed transistions from SUB: HOME, SUB_2
-                if (requestedState == RobotState.HOME){
-                    currentState = RobotState.HOME;
+                if (requestedState == RobotStates.HOME){
+                    currentState = RobotStates.HOME;
                     presetTimer.reset();  // start delay timer for wrist movement
-                } else if (requestedState == RobotState.SUB_2){
-                    currentState = RobotState.SUB_2;
+                } else if (requestedState == RobotStates.SUB_2){
+                    currentState = RobotStates.SUB_2;
                     presetTimer.reset();  // start delay timer for wrist movement
                 }
                 break;
@@ -338,8 +387,8 @@ public class MultiTaskAuto extends OpMode {
                 if(presetTimer.seconds() > 0.4){
                     clawTarget = CLAW_CLOSED;
                 }
-                if(presetTimer.seconds() > 0.8){
-                    currentState = RobotState.SUB_3;
+                if(presetTimer.seconds() > 0.7){
+                    currentState = RobotStates.SUB_3;
                     presetTimer.reset();
                 }
                 // allowed transition
@@ -350,11 +399,11 @@ public class MultiTaskAuto extends OpMode {
                 // immediate actions
                 wristTarget = WRIST_UP;
                 // allowed transition
-                if (requestedState == RobotState.HOME){
-                    currentState = RobotState.HOME;
+                if (requestedState == RobotStates.HOME){
+                    currentState = RobotStates.HOME;
                     presetTimer.reset();  // start delay timer for wrist movement
-                } else if (requestedState == RobotState.SUB_1){
-                    currentState = RobotState.SUB_1;
+                } else if (requestedState == RobotStates.SUB_1){
+                    currentState = RobotStates.SUB_1;
                     presetTimer.reset();  // start delay timer for wrist movement
                 }
                 break;
@@ -365,8 +414,8 @@ public class MultiTaskAuto extends OpMode {
                 wristTarget = WRIST_DOWN;
                 // delayed actions
                 // allowed transistions
-                if (presetTimer.seconds() > 1.5) {
-                    currentState = RobotState.BASKET_2;
+                if (presetTimer.seconds() > 1.0) {
+                    currentState = RobotStates.BASKET_2;
                     presetTimer.reset();
                 }
                 break;
@@ -379,8 +428,8 @@ public class MultiTaskAuto extends OpMode {
                     wristTarget = WRIST_UP;
                 }
 
-                if(requestedState == RobotState.BASKET_3){
-                    currentState = RobotState.BASKET_3;
+                if(requestedState == RobotStates.BASKET_3){
+                    currentState = RobotStates.BASKET_3;
                     presetTimer.reset();
                 }
                 break;
@@ -389,8 +438,8 @@ public class MultiTaskAuto extends OpMode {
                 // immediate actions
                 clawTarget = CLAW_OPEN;
 
-                if(presetTimer.seconds()> 1.0){
-                    currentState = RobotState.BASKET_4;
+                if(presetTimer.seconds()> 0.3){
+                    currentState = RobotStates.BASKET_4;
                     presetTimer.reset();
                 }
                 break;
@@ -398,20 +447,20 @@ public class MultiTaskAuto extends OpMode {
             case BASKET_4:
                 wristTarget = WRIST_DOWN;
 
-                if(presetTimer.seconds()>1.0){
+                if(presetTimer.seconds()>0.8){
                     slideTarget = SLIDE_MIN;
                     shoulderTarget = SHOULDER_MAX;
                 }
 
-                if(presetTimer.seconds()>2.0){
-                    currentState = RobotState.HOME;
+                if(presetTimer.seconds()>1.4){
+                    currentState = RobotStates.HOME;
                     presetTimer.reset();
                 }
 
                 break;
 
             default:
-                currentState = RobotState.UNKNOWN;
+                currentState = RobotStates.UNKNOWN;
 
                 break;
         }
@@ -424,5 +473,23 @@ public class MultiTaskAuto extends OpMode {
         telemetry.addData("CurrentX: ", currentX);
         telemetry.addData("CurrentY: ", currentY);
         telemetry.addData("Current Heading: ", currentHeading);
+    }
+
+    public double findPIDPower(double delta){
+        double derivative = 0;
+        double out = 0;
+        double error = 0;
+
+        error = delta;
+
+        // rate of change of the error
+        derivative = (delta - lastError) / timer.seconds();
+
+        // sum of all error over time
+        out = (kP * delta) + (kD * derivative);
+
+        this.lastError = delta;
+
+        return out;
     }
 }

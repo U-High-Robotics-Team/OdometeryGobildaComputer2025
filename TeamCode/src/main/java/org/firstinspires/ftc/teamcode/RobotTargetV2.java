@@ -1,15 +1,15 @@
 package org.firstinspires.ftc.teamcode;
 
-public class RobotTarget {
+public class RobotTargetV2 {
     public double x;
     public double y;
     public double heading;
     public double time;
 
     // Use the RobotState enum from MultiTaskAuto
-    public MultiTaskAuto.RobotState state;
+    public Robot.RobotState state;
 
-    public RobotTarget(double x, double y, double heading, double time, MultiTaskAuto.RobotState state) {
+    public RobotTargetV2(double x, double y, double heading, double time, Robot.RobotState state) {
         this.x = x;
         this.y = y;
         this.heading = heading;
